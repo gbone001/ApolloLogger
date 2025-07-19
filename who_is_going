@@ -1,0 +1,22 @@
+@bot.command()
+async def who_is_going(ctx, event_id: str):
+    going_users = []
+    event_name = None
+
+    with open("apollo_event_log.csv", newline="") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row["event_id"] == event_id and row["status"] == "Going":
+                going_users.append(row["user"])
+                event_name = row["event_name"]
+
+    if event_name:
+        user_list = "\n".join(f"- {user}" for user in going_users)
+        embed = discord.Embed(
+            title=f"✅ Attendees for: {event_name} (ID: {event_id})",
+            description=user_list if user_list else "No one confirmed yet.",
+            color=0x43b581
+        )
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(f"❗ No data found for event ID `{event_id}`.")
