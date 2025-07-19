@@ -183,6 +183,68 @@ with DAG("apollo_backup_dag", start_date=datetime(2025, 7, 20), schedule_interva
 
     log_apollo_responses >> backup_ela
 
-    
+    🧠 Updated Commands with Expanded Logic
+1. 🧾 Data Prep Assumptions
+Your bot has access to ctx.guild.members
+
+Each row in apollo_event_log.csv logs: event_id, event_name, user, status
+
+Status options: Going, Not Going, Tentative
+
+🤖 !attendance <event_id> — Expanded
+python
+@bot.command()
+async def attendance(ctx, event_id: str):
+    counts = {"Going": [], "Tentative": [], "Not Going": []}
+    event_name = None
+
+    with open("apollo_event_log.csv", newline="") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row["event_id"] == event_id:
+                status = row["status"]
+                counts[status].append(row["user"])
+                event_name = row["event_name"]
+
+    if event_name:
+        responded_users = set(counts["Going"] + counts["Tentative"] + counts["Not Going"])
+        all_members = [m.name for m in ctx.guild.members if not m.bot]
+        not_responded = [user for user in all_members if user not in responded_users]
+
+        embed = discord.Embed(title=f"📋 Attendance for: {event_name} (ID: {event_id})", color=0x00b2ff)
+        embed.add_field(name="✅ Going", value="\n".join(counts["Going"]) or "None", inline=False)
+        embed.add_field(name="❌ Not Going", value="\n".join(counts["Not Going"]) or "None", inline=False)
+        embed.add_field(name="🤔 Tentative", value="\n".join(counts["Tentative"]) or "None", inline=False)
+        embed.add_field(name="🤷 No Response", value="\n".join(not_responded) or "None", inline=False)
+
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(f"❗ No data found for event ID `{event_id}`.")
+🧾 Command: !who_didnt_respond <event_id>
+python
+@bot.command()
+async def who_didnt_respond(ctx, event_id: str):
+    responded = set()
+    event_name = None
+
+    with open("apollo_event_log.csv", newline="") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row["event_id"] == event_id:
+                responded.add(row["user"])
+                event_name = row["event_name"]
+
+    all_users = [m.name for m in ctx.guild.members if not m.bot]
+    missing = [user for user in all_users if user not in responded]
+
+    if event_name:
+        embed = discord.Embed(
+            title=f"🤷 Members Without Response: {event_name}",
+            description="\n".join(missing) or "All accounted for!",
+            color=0xffcc00
+        )
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(f"❗ No data found for event ID `{event_id}`.")
 
 Elastio policies (snapshot schedules + ransomware detection)
