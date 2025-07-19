@@ -126,4 +126,63 @@ If you're backing up with Elastio, this file can now be protected using your bac
 bash
 elastio backup /path/to/apollo_event_
 
+🕰️ Option 1: Automation via Cron
+📁 Directory Structure
+plaintext
+/apollo_bot/
+  ├── bot.py
+  ├── data/
+  │   └── daily_event_log.csv
+  ├── backup/
+  │   └── elastio_backup.sh
+🧾 elastio_backup.sh
+bash
+#!/bin/bash
+DATE=$(date +"%Y-%m-%d")
+CSV_PATH="/apollo_bot/data/daily_event_log.csv"
+TAG="apollo-${DATE}"
+
+elastio backup "$CSV_PATH" --tag "$TAG"
+Make it executable: chmod +x elastio_backup.sh
+
+🕗 Cron Job Setup
+Edit your crontab with:
+
+bash
+crontab -e
+Then add:
+
+bash
+0 23 * * * python3 /apollo_bot/bot.py >> /apollo_bot/log.txt 2>&1
+5 23 * * * /apollo_bot/backup/elastio_backup.sh >> /apollo_bot/backup/backup.log 2>&1
+🕐 This runs your bot at 11:00 PM daily, then backs up 5 minutes later.
+
+⚙️ Option 2: Airflow DAG
+1. Task Flow
+log_apollo_responses_task: Executes bot logic and flushes to CSV
+
+backup_elastio_task: Triggers Elastio CLI for that CSV file
+
+2. Python DAG
+python
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+from datetime import datetime
+
+with DAG("apollo_backup_dag", start_date=datetime(2025, 7, 20), schedule_interval="@daily") as dag:
+
+    log_apollo_responses = BashOperator(
+        task_id="log_apollo_responses",
+        bash_command="python3 /apollo_bot/bot.py"
+    )
+
+    backup_elastio = BashOperator(
+        task_id="backup_elastio",
+        bash_command="/apollo_bot/backup/elastio_backup.sh"
+    )
+
+    log_apollo_responses >> backup_ela
+
+    
+
 Elastio policies (snapshot schedules + ransomware detection)
