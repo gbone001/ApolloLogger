@@ -85,4 +85,45 @@ Cron jobs
 
 Airflow DAGs
 
+📦 Step-by-Step: Export to CSV
+1. Install Required Module
+Python’s built-in CSV module handles this nicely:
+
+bash
+pip install pandas  # Optional for advanced formatting
+2. CSV Writing Example
+Modify your bot to append to a CSV file whenever it logs a response:
+
+python
+import csv
+from datetime import datetime
+
+def log_to_csv(event_data, filename="apollo_event_log.csv"):
+    headers = ["event_id", "event_name", "user", "status", "timestamp"]
+    file_exists = os.path.isfile(filename)
+
+    with open(filename, mode="a", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=headers)
+        if not file_exists:
+            writer.writeheader()
+
+        for response in event_data["responses"]:
+            writer.writerow({
+                "event_id": event_data["event_id"],
+                "event_name": event_data["event_name"],
+                "user": response["user"],
+                "status": response["status"],
+                "timestamp": event_data["timestamp"]
+            })
+3. CSV Output Format
+Here’s what your CSV might look like:
+
+event_id,event_name,user,status,timestamp
+12345,Weekly Strategy Brief,Gareth,Going,2025-07-20T03:00:00Z
+12345,Weekly Strategy Brief,Alex,Tentative,2025-07-20T03:00:00Z
+If you're backing up with Elastio, this file can now be protected using your backup policy:
+
+bash
+elastio backup /path/to/apollo_event_
+
 Elastio policies (snapshot schedules + ransomware detection)
